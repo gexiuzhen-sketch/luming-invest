@@ -1,0 +1,501 @@
+/**
+ * 申万一级行业分类（中国标准行业分类）
+ * 数据来源：申万宏源研究
+ */
+
+export interface IndustryInfo {
+  code: string;         // 行业代码
+  name: string;         // 行业名称
+  sector: string;       // 所属板块
+  description: string;  // 行业描述
+  roe?: number;         // 净资产收益率 %（最近年报，用于质量评分）
+  concepts?: string[];  // 热门概念标签（供评分引擎匹配，不影响显示）
+}
+
+export const INDUSTRY_CLASSIFICATION: Record<string, IndustryInfo> = {
+  // ==================== 消费品 ====================
+  '600519': {
+    code: '600519',
+    name: '贵州茅台',
+    sector: '食品饮料',
+    description: '白酒 - 高端白酒',
+    roe: 35,
+    concepts: ['食品饮料', '白酒', '消费'],
+  },
+  '000858': {
+    code: '000858',
+    name: '五粮液',
+    sector: '食品饮料',
+    description: '白酒 - 浓香型白酒',
+    roe: 30,
+    concepts: ['食品饮料', '白酒'],
+  },
+  '000333': {
+    code: '000333',
+    name: '美的集团',
+    sector: '家用电器',
+    description: '白电 - 综合家电龙头',
+    roe: 23,
+    concepts: ['家电', '工业互联网', '机器人'],
+  },
+  '000651': {
+    code: '000651',
+    name: '格力电器',
+    sector: '家用电器',
+    description: '白电 - 空调龙头',
+    roe: 22,
+    concepts: ['家电', '空调'],
+  },
+  '600690': {
+    code: '600690',
+    name: '海尔智家',
+    sector: '家用电器',
+    description: '白电 - 智慧家居',
+    roe: 18,
+    concepts: ['家电', '智能家居'],
+  },
+  '002594': {
+    code: '002594',
+    name: '比亚迪',
+    sector: '汽车',
+    description: '新能源汽车 - 整车制造',
+    roe: 17,
+    concepts: ['新能源车', '动力电池', '汽车'],
+  },
+
+  // ==================== 金融 ====================
+  '600036': {
+    code: '600036',
+    name: '招商银行',
+    sector: '银行',
+    description: '银行 - 股份制银行',
+    roe: 17,
+    concepts: ['银行', '金融'],
+  },
+  '601398': {
+    code: '601398',
+    name: '工商银行',
+    sector: '银行',
+    description: '银行 - 国有大行',
+    roe: 11,
+    concepts: ['银行', '国有大行'],
+  },
+  '601288': {
+    code: '601288',
+    name: '农业银行',
+    sector: '银行',
+    description: '银行 - 国有大行',
+    roe: 11,
+    concepts: ['银行', '国有大行'],
+  },
+  '600000': {
+    code: '600000',
+    name: '浦发银行',
+    sector: '银行',
+    description: '银行 - 股份制银行',
+    roe: 8,
+    concepts: ['银行'],
+  },
+  '601318': {
+    code: '601318',
+    name: '中国平安',
+    sector: '非银金融',
+    description: '保险 - 综合金融集团',
+    roe: 12,
+    concepts: ['保险', '金融科技'],
+  },
+  '601336': {
+    code: '601336',
+    name: '新华保险',
+    sector: '非银金融',
+    description: '保险 - 人身保险',
+    roe: 10,
+    concepts: ['保险'],
+  },
+  '601166': {
+    code: '601166',
+    name: '兴业银行',
+    sector: '银行',
+    description: '银行 - 股份制银行',
+    roe: 9,
+    concepts: ['银行'],
+  },
+  '601601': {
+    code: '601601',
+    name: '中国太保',
+    sector: '非银金融',
+    description: '保险 - 综合保险集团',
+    roe: 10,
+    concepts: ['保险'],
+  },
+  '000001': {
+    code: '000001',
+    name: '平安银行',
+    sector: '银行',
+    description: '银行 - 股份制银行',
+    roe: 13,
+    concepts: ['银行', '金融科技'],
+  },
+  '02318': {
+    code: '02318',
+    name: '中国平安',
+    sector: '非银金融',
+    description: '保险 - 综合金融集团（港股）',
+    roe: 12,
+    concepts: ['保险', '金融科技'],
+  },
+
+  // ==================== 新能源/高端制造 ====================
+  '300750': {
+    code: '300750',
+    name: '宁德时代',
+    sector: '电力设备',
+    description: '电池 - 动力电池龙头',
+    roe: 16,
+    concepts: ['储能', '固态电池', '新能源', '动力电池'],
+  },
+  '688111': {
+    code: '688111',
+    name: '金山办公',
+    sector: '计算机',
+    description: '软件 - 办公软件',
+    roe: 28,
+    concepts: ['人工智能', 'AI', '软件', '国产化'],
+  },
+  '002475': {
+    code: '002475',
+    name: '立讯精密',
+    sector: '电子',
+    description: '消费电子 - 精密制造',
+    roe: 19,
+    concepts: ['消费电子', '半导体'],
+  },
+  '300059': {
+    code: '300059',
+    name: '东方财富',
+    sector: '非银金融',
+    description: '互联网金融 - 券商互联网平台',
+    roe: 15,
+    concepts: ['互联网金融', '金融科技', '数据要素'],
+  },
+  '002415': {
+    code: '002415',
+    name: '海康威视',
+    sector: '电子',
+    description: '安防 - 视频监控',
+    roe: 22,
+    concepts: ['AI', '人工智能', '算力'],
+  },
+  '000725': {
+    code: '000725',
+    name: '京东方A',
+    sector: '电子',
+    description: '面板 - 液晶面板',
+    roe: 7,
+    concepts: ['消费电子'],
+  },
+  '601138': {
+    code: '601138',
+    name: '工业富联',
+    sector: '电子',
+    description: '消费电子 - 代工制造',
+    roe: 14,
+    concepts: ['消费电子', '算力', '数据要素'],
+  },
+
+  // ==================== 科技/TMT ====================
+  '00700': {
+    code: '00700',
+    name: '腾讯控股',
+    sector: '传媒',
+    description: '互联网 - 社交与游戏',
+    roe: 27,
+    concepts: ['人工智能', 'AI', '算力', '互联网', '游戏'],
+  },
+  '01919': {
+    code: '01919',
+    name: '中远海控',
+    sector: '交通运输',
+    description: '航运物流 - 集装箱运输',
+    roe: 15,
+    concepts: ['航运', '物流'],
+  },
+  '09988': {
+    code: '09988',
+    name: '阿里巴巴',
+    sector: '传媒',
+    description: '互联网 - 电商与云计算',
+    roe: 15,
+    concepts: ['人工智能', 'AI', '云计算', '算力'],
+  },
+  '01810': {
+    code: '01810',
+    name: '小米集团',
+    sector: '电子',
+    description: '消费电子 - 智能手机与AIoT',
+    roe: 12,
+    concepts: ['消费电子', '智能家居', 'AI'],
+  },
+  '00941': {
+    code: '00941',
+    name: '中国移动',
+    sector: '通信',
+    description: '通信运营 - 5G与云计算',
+    roe: 11,
+    concepts: ['5G', '算力', '数据要素'],
+  },
+  '600276': {
+    code: '600276',
+    name: '恒瑞医药',
+    sector: '医药生物',
+    description: '化学药 - 创新药龙头',
+    roe: 14,
+    concepts: ['创新药', 'CRO', '生物医药'],
+  },
+  '000661': {
+    code: '000661',
+    name: '长春高新',
+    sector: '医药生物',
+    description: '生物药 - 生长激素',
+    roe: 16,
+    concepts: ['生物医药', '创新药'],
+  },
+  '601888': {
+    code: '601888',
+    name: '中国中免',
+    sector: '商贸零售',
+    description: '免税 - 消费龙头',
+    roe: 20,
+    concepts: ['免税', '消费'],
+  },
+  '000568': {
+    code: '000568',
+    name: '泸州老窖',
+    sector: '食品饮料',
+    description: '白酒 - 浓香型白酒',
+    roe: 32,
+    concepts: ['食品饮料', '白酒'],
+  },
+  '603259': {
+    code: '603259',
+    name: '药明康德',
+    sector: '医药生物',
+    description: '医疗服务 - CXO龙头',
+    roe: 22,
+    concepts: ['CRO', '创新药', '生物医药'],
+  },
+  '300124': {
+    code: '300124',
+    name: '汇川技术',
+    sector: '电力设备',
+    description: '工控 - 自动化',
+    roe: 18,
+    concepts: ['工控', '机器人', '新材料'],
+  },
+  '002142': {
+    code: '002142',
+    name: '宁波银行',
+    sector: '银行',
+    description: '银行 - 城商行',
+    roe: 16,
+    concepts: ['银行'],
+  },
+  '300174': {
+    code: '300174',
+    name: '汤臣倍健',
+    sector: '医药生物',
+    description: '医疗器械 - 膳食营养补充剂',
+    roe: 18,
+    concepts: ['医疗器械'],
+  },
+  '688256': {
+    code: '688256',
+    name: '智谱AI',
+    sector: '计算机',
+    description: '软件 - AI大模型',
+    roe: 10,
+    concepts: ['人工智能', 'AI', '算力', '大模型'],
+  },
+  '300367': {
+    code: '300367',
+    name: '东方网力',
+    sector: '计算机',
+    description: '软件 - 安防视频监控',
+    roe: 8,
+    concepts: ['AI', '安防'],
+  },
+
+  // ==================== 美股科技 ====================
+  'AAPL': {
+    code: 'AAPL',
+    name: '苹果',
+    sector: '电子',
+    description: '消费电子 - 智能设备',
+    roe: 140,
+    concepts: ['消费电子', 'AI', '半导体'],
+  },
+  'NVDA': {
+    code: 'NVDA',
+    name: '英伟达',
+    sector: '半导体',
+    description: '半导体 - AI芯片',
+    roe: 70,
+    concepts: ['AI', '人工智能', '算力', '半导体', '芯片'],
+  },
+  'TSLA': {
+    code: 'TSLA',
+    name: '特斯拉',
+    sector: '汽车',
+    description: '新能源汽车 - 电动车与自动驾驶',
+    roe: 10,
+    concepts: ['新能源车', 'AI', '自动驾驶'],
+  },
+  'MSFT': {
+    code: 'MSFT',
+    name: '微软',
+    sector: '计算机',
+    description: '软件 - 云计算与AI',
+    roe: 35,
+    concepts: ['人工智能', 'AI', '云计算', '算力'],
+  },
+  'GOOGL': {
+    code: 'GOOGL',
+    name: '谷歌',
+    sector: '传媒',
+    description: '互联网 - 搜索与广告',
+    roe: 30,
+    concepts: ['人工智能', 'AI', '算力', '互联网'],
+  },
+  'AMZN': {
+    code: 'AMZN',
+    name: '亚马逊',
+    sector: '商贸零售',
+    description: '电商与云计算',
+    roe: 20,
+    concepts: ['云计算', 'AI', '算力', '电商'],
+  },
+  'META': {
+    code: 'META',
+    name: 'Meta',
+    sector: '传媒',
+    description: '社交媒体 - 元宇宙',
+    roe: 28,
+    concepts: ['人工智能', 'AI', '互联网'],
+  },
+  'BRK.B': {
+    code: 'BRK.B',
+    name: '伯克希尔',
+    sector: '非银金融',
+    description: '投资 - 多元化投资集团',
+    roe: 15,
+    concepts: ['价值投资'],
+  },
+  'TSM': {
+    code: 'TSM',
+    name: '台积电',
+    sector: '半导体',
+    description: '半导体 - 晶圆代工',
+    roe: 25,
+    concepts: ['半导体', '芯片', 'AI', '算力'],
+  },
+  'AVGO': {
+    code: 'AVGO',
+    name: '博通',
+    sector: '半导体',
+    description: '半导体 - 芯片设计',
+    roe: 60,
+    concepts: ['半导体', '芯片', 'AI'],
+  },
+  'NFLX': {
+    code: 'NFLX',
+    name: '奈飞',
+    sector: '传媒',
+    description: '流媒体 - 在线视频',
+    roe: 25,
+    concepts: ['流媒体', 'AI'],
+  },
+  'ADBE': {
+    code: 'ADBE',
+    name: 'Adobe',
+    sector: '计算机',
+    description: '软件 - 创意软件',
+    roe: 35,
+    concepts: ['人工智能', 'AI', '软件'],
+  },
+  'CRM': {
+    code: 'CRM',
+    name: 'Salesforce',
+    sector: '计算机',
+    description: '软件 - CRM云服务',
+    roe: 10,
+    concepts: ['云计算', 'AI'],
+  },
+  'NOK': {
+    code: 'NOK',
+    name: '诺基亚',
+    sector: '通信',
+    description: '通信设备 - 5G与网络',
+    roe: 10,
+    concepts: ['5G', '通信'],
+  },
+  'NVR': {
+    code: 'NVR',
+    name: 'NVR',
+    sector: '房地产',
+    description: '房屋建筑 - 住宅建设',
+    roe: 35,
+    concepts: ['地产'],
+  },
+};
+
+/**
+ * 获取股票行业信息
+ */
+export function getStockIndustry(code: string): IndustryInfo | null {
+  return INDUSTRY_CLASSIFICATION[code] || null;
+}
+
+/**
+ * 申万一级行业列表（30个）
+ */
+export const SW_LEVEL_1_INDUSTRIES = [
+  { code: '801010', name: '农林牧渔', sector: '农业' },
+  { code: '801020', name: '基础化工', sector: '原材料' },
+  { code: '801030', name: '钢铁', sector: '原材料' },
+  { code: '801040', name: '有色金属', sector: '原材料' },
+  { code: '801050', name: '电子', sector: '科技' },
+  { code: '801060', name: '汽车', sector: '汽车' },
+  { code: '801070', name: '家用电器', sector: '消费品' },
+  { code: '801080', name: '食品饮料', sector: '消费品' },
+  { code: '801090', name: '纺织服饰', sector: '消费品' },
+  { code: '801100', name: '轻工制造', sector: '消费品' },
+  { code: '801110', name: '医药生物', sector: '医疗' },
+  { code: '801120', name: '公用事业', sector: '公用事业' },
+  { code: '801130', name: '交通运输', sector: '基础设施' },
+  { code: '801140', name: '房地产', sector: '房地产' },
+  { code: '801150', name: '银行', sector: '金融' },
+  { code: '801160', name: '非银金融', sector: '金融' },
+  { code: '801170', name: '综合', sector: '综合' },
+  { code: '801180', name: '建筑材料', sector: '原材料' },
+  { code: '801190', name: '建筑装饰', sector: '基础设施' },
+  { code: '801200', name: '电力设备', sector: '新能源' },
+  { code: '801210', name: '国防军工', sector: '军工' },
+  { code: '801220', name: '计算机', sector: '科技' },
+  { code: '801230', name: '传媒', sector: '传媒' },
+  { code: '801240', name: '通信', sector: '科技' },
+  { code: '801250', name: '煤炭', sector: '能源' },
+  { code: '801260', name: '石油石化', sector: '能源' },
+  { code: '801270', name: '环保', sector: '公用事业' },
+  { code: '801280', name: '商贸零售', sector: '消费品' },
+  { code: '801290', name: '社会服务', sector: '服务' },
+  { code: '801710', name: '美容护理', sector: '消费品' },
+  { code: '801730', name: '机械设备', sector: '高端制造' },
+];
+
+/**
+ * 根据行业代码获取行业名称
+ */
+export function getIndustryName(industryCode: string): string {
+  const industry = SW_LEVEL_1_INDUSTRIES.find(i => i.code === industryCode);
+  return industry?.name || '未知';
+}

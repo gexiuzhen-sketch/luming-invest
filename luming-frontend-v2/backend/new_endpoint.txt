@@ -1,0 +1,46 @@
+
+@app.route('/api/stock/prices', methods=['POST'])
+def get_stock_prices():
+    """
+    获取多只股票的实时价格
+    用于持仓页面显示最新价格
+    """
+    try:
+        data = request.json
+        codes = data.get('codes', [])
+        
+        if not codes:
+            return jsonify({})
+        
+        # Mock 价格数据（实际应调用 Tushare 或其他数据源）
+        prices = {}
+        mock_prices = {
+            '600519': 1455.02, '000858': 125.80, '300750': 178.50,
+            '600036': 33.82, '002594': 235.60, '601318': 43.25,
+            '000333': 68.50, '00700': 320.00, '09988': 78.50,
+            'AAPL': 178.50, 'NVDA': 850.20, 'TSLA': 178.20
+        }
+        
+        import random
+        for code in codes:
+            if code in mock_prices:
+                base_price = mock_prices[code]
+                # 添加小幅随机波动模拟实时变化
+                change_pct = random.uniform(-0.01, 0.01)
+                prices[code] = {
+                    'price': round(base_price * (1 + change_pct), 2),
+                    'changePct': round(change_pct * 100, 2)
+                }
+            else:
+                # 默认价格
+                prices[code] = {
+                    'price': 100.00,
+                    'changePct': 0.0
+                }
+        
+        return jsonify(prices)
+        
+    except Exception as e:
+        print(f"Error in get_stock_prices: {e}")
+        return jsonify({})
+

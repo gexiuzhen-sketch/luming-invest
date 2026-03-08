@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Testing getStockRecommendations</h1>
+    <pre id="output"></pre>
+    <script type="module">
+        // 拦截所有 fetch 请求
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            console.log('FETCH CALLED:', args);
+            document.getElementById('output').textContent += '\nFETCH CALLED: ' + JSON.stringify(args);
+            return originalFetch.apply(this, args);
+        };
+
+        // 导入并测试函数
+        import { getStockRecommendations } from '/src/services/api.ts';
+
+        document.getElementById('output').textContent = 'Starting test...\n';
+
+        try {
+            const result = await getStockRecommendations('A');
+            document.getElementById('output').textContent += '\n\nSUCCESS! Got ' + result.length + ' stocks';
+            document.getElementById('output').textContent += '\n\nFirst stock: ' + JSON.stringify(result[0], null, 2);
+        } catch (error) {
+            document.getElementById('output').textContent += '\n\nERROR: ' + error.message;
+        }
+    </script>
+</body>
+</html>
