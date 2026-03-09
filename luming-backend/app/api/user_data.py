@@ -1,7 +1,7 @@
 """
 用户数据同步 API
 提供 GET / PUT 接口，用于跨设备同步用户数据（自选、持仓、模拟盘）
-无需登录验证（用 username 作为 key，适合个人使用场景）
+需要 JWT token 验证，确保只能访问自己的数据
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from sqlalchemy import select
 from pydantic import BaseModel
 from app.models.database import get_db
 from app.models.user_data import UserSyncData
+from app.api.auth import get_current_user
 import json
 
 router = APIRouter()
@@ -19,8 +20,15 @@ class SyncDataBody(BaseModel):
 
 
 @router.get("/{username}")
-async def get_user_data(username: str, db: AsyncSession = Depends(get_db)):
-    """拉取用户同步数据"""
+async def get_user_data(
+    username: str,
+    current_user: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """拉取用户同步数据（需认证，只能拉取自己的数据）"""
+    if current_user != username:
+        raise HTTPException(status_code=403, detail="无权访问其他用户的数据")
+
     result = await db.execute(
         select(UserSyncData).where(UserSyncData.username == username)
     )
@@ -41,8 +49,16 @@ async def get_user_data(username: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{username}")
-async def put_user_data(username: str, body: SyncDataBody, db: AsyncSession = Depends(get_db)):
-    """推送用户同步数据（覆盖式更新）"""
+async def put_user_data(
+    username: str,
+    body: SyncDataBody,
+    current_user: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """推送用户同步数据（需认证，只能更新自己的数据）"""
+    if current_user != username:
+        raise HTTPException(status_code=403, detail="无权修改其他用户的数据")
+
     if len(username) > 100:
         raise HTTPException(status_code=400, detail="用户名过长")
 

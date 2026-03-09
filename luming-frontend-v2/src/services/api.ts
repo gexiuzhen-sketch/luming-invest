@@ -1368,10 +1368,10 @@ function getLocalCredentials(): Record<string, LocalCredential> {
  * 注册（优先注册到服务端，服务端不可用时 fallback 到本地）
  * 用户名区分大小写
  */
-export async function registerLocal(username: string, password: string): Promise<{ user: { id: string; phone: string; membershipLevel: string } }> {
+export async function registerLocal(username: string, password: string): Promise<{ user: { id: string; phone: string; membershipLevel: string }; token?: string }> {
   try {
     // 先尝试服务端注册
-    const data = await request<{ success: boolean; user: { id: string; phone: string; membershipLevel: string } }>('/auth/register', {
+    const data = await request<{ success: boolean; token?: string; user: { id: string; phone: string; membershipLevel: string } }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '../types';
 import { login as apiLogin } from '../services/api';
-import { pullSync, pushSync, applySyncPayload, getSyncPayload } from '../services/syncService';
+import { pullSync, pushSync, applySyncPayload, getSyncPayload, saveToken, clearToken, getToken } from '../services/syncService';
 
 interface AuthContextValue {
   user: User | null;
@@ -27,15 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const userStr = localStorage.getItem('lm_user');
         const savedUsername = localStorage.getItem('lm_username');
+        const hasToken = !!getToken();
+
         if (userStr) {
           setUser(JSON.parse(userStr));
         }
-        if (savedUsername) {
+        if (savedUsername && hasToken) {
           setUsername(savedUsername);
           // 应用启动时拉取同步数据
-          const remote = await pullSync(savedUsername);
-          if (remote) {
-            applySyncPayload(remote);
+          const result = await pullSync(savedUsername);
+          if (result.data) {
+            applySyncPayload(result.data);
           }
         }
       } catch (error) {
@@ -52,6 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 调用API登录（password参数可选，默认使用测试密码）
       const response = await apiLogin(username, password);
 
+      // 保存 JWT token
+      if (response.token) {
+        saveToken(response.token);
+      }
+
       // 使用API返回的用户信息
       const userData: User = {
         id: response.user.id,
@@ -65,13 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('lm_user', JSON.stringify(userData));
       localStorage.setItem('lm_username', username);
 
-      // 登录后同步：若服务端有数据则拉取（保留本地数据优先），否则推送本地数据上去
-      const remote = await pullSync(username);
-      if (remote && remote.syncedAt) {
-        // 服务端有数据：若比本地新则应用（保护已有本地数据）
-        applySyncPayload(remote);
+      // 登录后同步：若服务端有数据则拉取，否则推送本地数据上去
+      const result = await pullSync(username);
+      if (result.data && result.data.syncedAt) {
+        // 服务端有数据：应用到本地
+        applySyncPayload(result.data);
       } else {
-        // 服务端无数据：将本地数据初始化上传（保留 luming 等已有账号数据）
+        // 服务端无数据：将本地数据初始化上传
         const local = getSyncPayload();
         const hasLocalData =
           local.watchlist.length > 0 ||
@@ -93,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     localStorage.removeItem('lm_user');
     localStorage.removeItem('lm_username');
+    clearToken();
   };
 
   const updateUser = (updates: Partial<User>) => {

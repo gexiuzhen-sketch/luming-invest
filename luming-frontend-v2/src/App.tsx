@@ -19,6 +19,7 @@ import { PriceAlertsPage } from './pages/PriceAlertsPage';
 import { StatsDashboardPage } from './pages/StatsDashboardPage';
 import { useOnboarding } from './hooks/useOnboarding';
 import { trackPageView } from './services/statsService';
+import SyncStatusIndicator from './components/SyncStatusIndicator';
 
 /** 路由变化时自动记录 PV */
 function PageViewTracker() {
@@ -87,6 +88,7 @@ function App() {
       <OnboardingProvider>
         <AuthProvider>
           <MembershipProvider>
+            <SyncStatusIndicator />
             <AppRoutes />
           </MembershipProvider>
         </AuthProvider>
