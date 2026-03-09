@@ -84,6 +84,11 @@ export function SimulatedTradingPage() {
   const [aiLoading, setAILoading] = useState(false);
   const [aiStocks, setAIStocks] = useState<Stock[]>([]);
 
+  // 一键智能调仓状态
+  const [rebalancing, setRebalancing] = useState(false);
+  const [rebalanceLog, setRebalanceLog] = useState<string[]>([]);
+  const [showRebalanceResult, setShowRebalanceResult] = useState(false);
+
   // 从 localStorage 加载数据
   useEffect(() => {
     const savedData = localStorage.getItem('simulatedTrading');
@@ -454,6 +459,179 @@ export function SimulatedTradingPage() {
     }
   };
 
+  // 一键智能调仓：卖出低分持仓，买入高分推荐股
+  const handleSmartRebalance = useCallback(async () => {
+    if (!confirm('确定执行智能调仓吗？将根据AI评分自动卖出低分股票并买入高分股票。')) return;
+
+    setRebalancing(true);
+    setRebalanceLog([]);
+    const logs: string[] = [];
+    const log = (msg: string) => { logs.push(msg); setRebalanceLog([...logs]); };
+
+    try {
+      log('正在获取AI评分数据...');
+
+      // 获取所有市场的推荐股（含评分）
+      const [aStocks, hkStocks, usStocks] = await Promise.all([
+        getStockRecommendations('A'),
+        getStockRecommendations('HK'),
+        getStockRecommendations('US'),
+      ]);
+      const allScored = [...aStocks, ...hkStocks, ...usStocks]
+        .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+      log(`获取到 ${allScored.length} 只股票评分`);
+
+      // 给当前持仓评分
+      const holdingScores = positions.map(p => {
+        const scored = allScored.find(s => s.code === p.code);
+        return { ...p, aiScore: scored?.score || 0 };
+      });
+
+      // 找出低分持仓（评分 < 65 或不在推荐列表中）
+      const weakHoldings = holdingScores.filter(h => h.aiScore < 65);
+      const strongHoldings = holdingScores.filter(h => h.aiScore >= 65);
+
+      log(`当前持仓 ${positions.length} 只: ${holdingScores.map(h => `${h.name}(${h.aiScore}分)`).join(', ')}`);
+
+      if (weakHoldings.length === 0) {
+        log('所有持仓评分均 >= 65，无需调仓');
+        setRebalancing(false);
+        setShowRebalanceResult(true);
+        return;
+      }
+
+      log(`低分持仓 ${weakHoldings.length} 只: ${weakHoldings.map(h => `${h.name}(${h.aiScore}分)`).join(', ')}`);
+
+      // Step 1: 卖出低分持仓
+      let freedCash = 0;
+      const now = new Date().toISOString();
+      const newTrades: SimTrade[] = [];
+      const soldIds = new Set<string>();
+
+      for (const weak of weakHoldings) {
+        const sellAmount = weak.currentPrice * weak.shares;
+        const sellCost = calculateTradingCost(sellAmount, false, weak.market);
+        const netAmount = sellAmount - sellCost.totalCost;
+        freedCash += netAmount;
+        soldIds.add(weak.id);
+
+        newTrades.push({
+          id: `rebal_sell_${Date.now()}_${weak.code}`,
+          code: weak.code,
+          name: weak.name,
+          type: 'sell',
+          shares: weak.shares,
+          price: weak.currentPrice,
+          amount: sellAmount,
+          date: now,
+        });
+
+        log(`卖出 ${weak.name} ${weak.shares}股 @ ¥${weak.currentPrice.toFixed(2)}，回收 ¥${netAmount.toFixed(2)}`);
+      }
+
+      // Step 2: 选择高分股买入（排除已持有的）
+      const heldCodes = new Set(strongHoldings.map(h => h.code));
+      const candidates = allScored
+        .filter(s => !heldCodes.has(s.code) && (s.score || 0) >= 70 && s.price > 0)
+        .slice(0, 5); // 取前5只候选
+
+      if (candidates.length === 0) {
+        log('未找到合适的高分股票买入');
+      } else {
+        // 计算总可用资金（原有现金 + 卖出回收）
+        const totalCashForBuy = cash + freedCash;
+        // 保留10%现金
+        const buyBudget = totalCashForBuy * 0.9;
+        // 买入数量 = min(候选数, 目标持仓数 - 当前强势持仓数)
+        const targetPositions = 4; // 目标持仓4-5只
+        const slotsAvailable = Math.max(1, targetPositions - strongHoldings.length);
+        const toBuy = candidates.slice(0, slotsAvailable);
+        const perStockBudget = buyBudget / toBuy.length;
+
+        log(`可用资金 ¥${totalCashForBuy.toFixed(2)}，计划买入 ${toBuy.length} 只`);
+
+        const newPositions: SimPosition[] = [];
+        let totalSpent = 0;
+
+        for (const stock of toBuy) {
+          // A股必须100股整数倍
+          const isAShare = !stock.market || stock.market === 'SH' || stock.market === 'SZ';
+          const lotSize = isAShare ? 100 : 1;
+          let shares = Math.floor(perStockBudget / stock.price / lotSize) * lotSize;
+          if (shares < lotSize) {
+            log(`${stock.name} 资金不足买入最小单位，跳过`);
+            continue;
+          }
+
+          const buyAmount = shares * stock.price;
+          const buyCost = calculateTradingCost(buyAmount, true, stock.market);
+          const totalBuyAmount = buyAmount + buyCost.totalCost;
+
+          if (totalBuyAmount > (cash + freedCash - totalSpent)) {
+            shares = Math.floor((cash + freedCash - totalSpent - 100) / stock.price / lotSize) * lotSize;
+            if (shares < lotSize) {
+              log(`${stock.name} 资金不足，跳过`);
+              continue;
+            }
+          }
+
+          const finalAmount = shares * stock.price;
+          const finalCost = calculateTradingCost(finalAmount, true, stock.market);
+          totalSpent += finalAmount + finalCost.totalCost;
+
+          newPositions.push({
+            id: `rebal_${Date.now()}_${stock.code}`,
+            code: stock.code,
+            name: stock.name,
+            market: stock.market,
+            shares,
+            costPrice: stock.price,
+            currentPrice: stock.price,
+            previousPrice: stock.price,
+            profit: 0,
+            profitPct: 0,
+            buyDate: now,
+          });
+
+          newTrades.push({
+            id: `rebal_buy_${Date.now()}_${stock.code}`,
+            code: stock.code,
+            name: stock.name,
+            type: 'buy',
+            shares,
+            price: stock.price,
+            amount: finalAmount,
+            date: now,
+          });
+
+          log(`买入 ${stock.name}(${stock.score}分) ${shares}股 @ ¥${stock.price.toFixed(2)}，花费 ¥${(finalAmount + finalCost.totalCost).toFixed(2)}`);
+        }
+
+        // Step 3: 更新状态
+        const remainingPositions = positions.filter(p => !soldIds.has(p.id));
+        const finalPositions = [...remainingPositions, ...newPositions];
+        const finalCash = cash + freedCash - totalSpent;
+
+        setPositions(finalPositions);
+        setCash(finalCash);
+        setTrades(prev => [...newTrades, ...prev]);
+
+        // 更新AI推荐数据
+        setAIStocks(allScored);
+
+        log(`调仓完成！当前持仓 ${finalPositions.length} 只，可用资金 ¥${finalCash.toFixed(2)}`);
+        log(`新组合: ${finalPositions.map(p => p.name).join(', ')}`);
+      }
+    } catch (err) {
+      log(`调仓失败: ${err instanceof Error ? err.message : '未知错误'}`);
+      console.error('Smart rebalance failed:', err);
+    }
+
+    setRebalancing(false);
+    setShowRebalanceResult(true);
+  }, [positions, cash]);
+
   return (
     <div>
       {/* 账户总览卡片 */}
@@ -653,6 +831,93 @@ export function SimulatedTradingPage() {
         <Plus size={18} />
         买入股票
       </button>
+
+      {/* 一键智能调仓按钮 */}
+      {positions.length > 0 && (
+        <button
+          onClick={handleSmartRebalance}
+          disabled={rebalancing}
+          style={{
+            width: '100%',
+            padding: '14px',
+            borderRadius: '12px',
+            background: rebalancing
+              ? 'rgba(139, 92, 246, 0.2)'
+              : 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+            border: 'none',
+            color: '#fff',
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: rebalancing ? 'wait' : 'pointer',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            opacity: rebalancing ? 0.7 : 1,
+          }}
+        >
+          <Sparkles size={18} />
+          {rebalancing ? '智能调仓中...' : '一键智能调仓（按AI评分优化）'}
+        </button>
+      )}
+
+      {/* 调仓结果弹窗 */}
+      {showRebalanceResult && rebalanceLog.length > 0 && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: 20,
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 420, maxHeight: '80vh',
+            background: '#1a1b1e', borderRadius: 16,
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <Sparkles size={18} style={{ color: '#a78bfa' }} />
+                智能调仓结果
+              </h3>
+              <button
+                onClick={() => setShowRebalanceResult(false)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 18 }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+              {rebalanceLog.map((line, i) => (
+                <div key={i} style={{
+                  fontSize: 13, color: line.includes('失败') ? '#f87171' : line.includes('完成') ? '#4ade80' : 'rgba(255,255,255,0.7)',
+                  padding: '6px 0',
+                  borderBottom: i < rebalanceLog.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  lineHeight: 1.5,
+                }}>
+                  {line}
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <button
+                onClick={() => setShowRebalanceResult(false)}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: 8,
+                  background: 'rgba(139, 92, 246, 0.2)', border: '1px solid rgba(139, 92, 246, 0.3)',
+                  color: '#c4b5fd', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* AI智能调仓建议 */}
       <div style={{ marginBottom: 20 }}>
